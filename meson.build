@@ -6,7 +6,8 @@ deps = [
 ]
 
 sources = [
-	'src/main.c'
+	'src/main.c',
+	'src/config.c'
 ]
 
 executable(
