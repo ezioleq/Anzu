@@ -1,8 +1,9 @@
-project('Anzu', 'c', version: '0.1')
+project('anzu', 'c', version: '0.1')
 
 deps = [
 	dependency('sdl2'),
-	dependency('SDL2_image')
+	dependency('SDL2_image'),
+	dependency('x11')
 ]
 
 sources = [
@@ -11,7 +12,7 @@ sources = [
 ]
 
 executable(
-	'Anzu',
+	'anzu',
 	sources,
 	dependencies: deps,
 	install: true

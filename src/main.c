@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
 	config_init(&cfg);
 
 	const char *help_string =
-		"usage: Anzu [options]\n"
+		"usage: anzu [options]\n"
 		"Fast and simple screenshooter for X11\n"
 		"options:\n"
 		"  -d <time>      Set screenshot delay in milliseconds\n"

@@ -2,7 +2,7 @@
 
 OUTPUT_DIR=bin/
 BUILD_DIR=builddir/
-EXECUTABLE_NAME=Anzu
+EXECUTABLE_NAME=anzu
 
 function build {
 	meson "$BUILD_DIR" && cd $_;
