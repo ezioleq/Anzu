@@ -8,7 +8,8 @@ deps = [
 
 sources = [
 	'src/main.c',
-	'src/config.c'
+	'src/config.c',
+	'src/save.c'
 ]
 
 executable(

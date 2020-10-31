@@ -26,33 +26,33 @@ int main(int argc, char **argv) {
 
 	while ((opt = getopt(argc, argv, ":hnd:s:f:")) != -1) {
 		switch (opt) {
-			case 'h': // Help
+			case 'h': /* Help */
 				printf("%s", help_string);
 				exit(EXIT_SUCCESS);
 				break;
 
-			case 'd': // Delay
+			case 'd': /* Delay */
 				cfg.delay = atoi(optarg);
 				break;
 
-			case 's': // Save path
+			case 's': /* Save path */
 				cfg.save_path = malloc(strlen(optarg)+1);
 				strcpy(cfg.save_path, optarg);
 				break;
 
-			case 'f': // Date format
+			case 'f': /* Date format */
 				cfg.date_format = malloc(strlen(optarg)+1);
 				strcpy(cfg.date_format, optarg);
 				cfg.is_date_format_set = true;
 				break;
 
-			case 'n': // No GUI
+			case 'n': /* No GUI */
 				cfg.nogui = true;
 				break;
 		}
 	}
 
-	// Set default filename date format
+	/* Set default filename date format */
 	if (!cfg.is_date_format_set) {
 		const char *default_format = "%Y-%m-%d-%H-%M-%S";
 		cfg.date_format = malloc(strlen(default_format)+1);
