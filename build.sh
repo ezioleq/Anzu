@@ -5,7 +5,8 @@ BUILD_DIR=builddir/
 EXECUTABLE_NAME=anzu
 
 function build {
-	meson "$BUILD_DIR" && cd $_;
+	meson "$BUILD_DIR" -Dbuildtype=release; 
+	cd "$BUILD_DIR";
 	meson compile;
 	cd .. && mkdir -p "$OUTPUT_DIR";
 	mv "$BUILD_DIR$EXECUTABLE_NAME" "$OUTPUT_DIR";

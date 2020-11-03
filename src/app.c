@@ -1,10 +1,11 @@
 #include "app.h"
 
+#include <SDL2/SDL_image.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <SDL2/SDL.h>
+#include "save.h"
 
 void app_run(App *app, int argc, char** argv) {
 	app->running = true;
@@ -71,12 +72,61 @@ void app_init(App *app) {
 		strcpy(app->cfg.date_format, default_format);
 	}
 
-	/* Screen capturing will be here */
+	/* TODO: Add params for setting this */
+	app->off_x = app->off_y = 0;
 
+	/* Our screenshot delay */
 	SDL_Delay(app->cfg.delay);
+
+	/* Screen capturing */
+	app->x_display = XOpenDisplay(NULL);
+	app->x_window = DefaultRootWindow(app->x_display);
+	XGetWindowAttributes(app->x_display, app->x_window, &app->x_attribs);
+
+	app->scr_w = app->x_attribs.width;
+	app->scr_h = app->x_attribs.height;
+
+	app->image = XGetImage(
+		app->x_display, app->x_window,
+		app->off_x, app->off_y,
+		app->scr_w, app->scr_h,
+		AllPlanes, ZPixmap
+	);
+
+	SDL_Surface *huj = SDL_CreateRGBSurfaceWithFormatFrom(
+		app->image->data, app->scr_w, app->scr_h, 32,
+		app->image->width*4, SDL_PIXELFORMAT_RGB888
+	);
+
+	app->screen_surface = SDL_CreateRGBSurfaceWithFormat(
+		0, huj->w, huj->h,
+		huj->format->BitsPerPixel,
+		huj->format->format
+	);
+
+	SDL_BlitSurface(huj, 0, app->screen_surface, 0);
+	SDL_FreeSurface(huj);
 }
 
 void app_update(App *app) {
+	/* Please future me, change this */
+	if (app->cfg.is_save_path_set) {
+		char *full_path = calloc(256, sizeof(char));
+		char *filename = get_filename(app->cfg.date_format);
+
+		strcpy(full_path, app->cfg.save_path);
+		strcat(full_path, "/");
+		strcat(full_path, filename);
+
+		IMG_SavePNG(app->screen_surface, full_path);
+		fprintf(stderr, "Saved screenshot to %s\n", full_path);
+
+		free(filename);
+		free(full_path);
+	} else {
+		fprintf(stderr, "Please set save path!\n");
+	}
+
 	app->running = false; /* We will come back here */
 }
 
@@ -86,4 +136,8 @@ void app_draw(App *app) {
 
 void app_close(App *app) {
 	config_free(&app->cfg);
+	XDestroyWindow(app->x_display, app->x_window);
+	XCloseDisplay(app->x_display);
+	XDestroyImage(app->image);
+	SDL_FreeSurface(app->screen_surface);
 }
