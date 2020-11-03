@@ -93,19 +93,19 @@ void app_init(App *app) {
 		AllPlanes, ZPixmap
 	);
 
-	SDL_Surface *huj = SDL_CreateRGBSurfaceWithFormatFrom(
+	SDL_Surface *temp = SDL_CreateRGBSurfaceWithFormatFrom(
 		app->image->data, app->scr_w, app->scr_h, 32,
 		app->image->width*4, SDL_PIXELFORMAT_RGB888
 	);
 
 	app->screen_surface = SDL_CreateRGBSurfaceWithFormat(
-		0, huj->w, huj->h,
-		huj->format->BitsPerPixel,
-		huj->format->format
+		0, temp->w, temp->h,
+		temp->format->BitsPerPixel,
+		temp->format->format
 	);
 
-	SDL_BlitSurface(huj, 0, app->screen_surface, 0);
-	SDL_FreeSurface(huj);
+	SDL_BlitSurface(temp, 0, app->screen_surface, 0);
+	SDL_FreeSurface(temp);
 }
 
 void app_update(App *app) {

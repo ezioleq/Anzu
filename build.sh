@@ -4,8 +4,13 @@ OUTPUT_DIR=bin/
 BUILD_DIR=builddir/
 EXECUTABLE_NAME=anzu
 
-function build {
-	meson "$BUILD_DIR" -Dbuildtype=release; 
+function build () {
+	BUILD_MODE="debug"
+	if [ "$1" == '-r' ]; then
+		BUILD_MODE="release";
+	fi
+
+	meson "$BUILD_DIR" -Dbuildtype="$BUILD_MODE"; 
 	cd "$BUILD_DIR";
 	meson compile;
 	cd .. && mkdir -p "$OUTPUT_DIR";
@@ -23,12 +28,13 @@ function show_help {
 	echo "br      Build and run"
 	echo "clean   Delete build files"
 	echo "help    Show this message"
+	echo "-r      Force build in release mode"
 }
 
 case "$1" in
-	"build") build ;;
+	"build") build $2 ;;
 	"run") run ;;
-	"br") build && run ;;
+	"br") build $2 && run ;;
 	"clean") clean ;;
 	"help") show_help ;;
 	*) show_help ;;
