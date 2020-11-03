@@ -6,6 +6,7 @@ void config_init(Config *c) {
 	c->delay = 0;
 	c->save_path = NULL;
 	c->date_format = NULL;
+	c->is_save_path_set = false;
 	c->is_date_format_set = false;
 	c->nogui = false;
 }

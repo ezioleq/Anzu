@@ -8,6 +8,7 @@ deps = [
 
 sources = [
 	'src/main.c',
+	'src/app.c',
 	'src/config.c',
 	'src/save.c'
 ]
