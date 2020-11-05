@@ -111,12 +111,8 @@ void app_init(App *app) {
 void app_update(App *app) {
 	/* Please future me, change this */
 	if (app->cfg.is_save_path_set) {
-		char *full_path = calloc(256, sizeof(char));
 		char *filename = get_filename(app->cfg.date_format);
-
-		strcpy(full_path, app->cfg.save_path);
-		strcat(full_path, "/");
-		strcat(full_path, filename);
+		char *full_path = get_full_path(app->cfg.save_path, filename);
 
 		IMG_SavePNG(app->screen_surface, full_path);
 		fprintf(stderr, "Saved screenshot to %s\n", full_path);

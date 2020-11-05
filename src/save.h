@@ -9,4 +9,10 @@
  */
 char *get_filename(const char *date_format);
 
+/**
+ * It have to be freed later.
+ * @return Full file path string
+ */
+char *get_full_path(const char *save_path, const char *filename);
+
 #endif
