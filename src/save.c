@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 
 char *get_filename(const char *date_format) {
@@ -29,4 +30,15 @@ char *get_full_path(const char *save_path, const char *filename) {
 	memcpy(full_path + sp_len + 1, filename, fn_len + 1);
 
 	return full_path;
+}
+
+char *get_default_save_path() {
+	const size_t buffer_size = 1024;
+	char *save_path = malloc(buffer_size);
+
+	if (getcwd(save_path, buffer_size) == NULL) {
+		save_path = getenv("HOME");
+		return (save_path == NULL) ? "/tmp" : save_path;
+	} else
+		return save_path;
 }

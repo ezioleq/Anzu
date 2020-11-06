@@ -15,4 +15,10 @@ char *get_filename(const char *date_format);
  */
 char *get_full_path(const char *save_path, const char *filename);
 
+/**
+ * It have to be freed later.
+ * @return Default save path string
+ */
+char *get_default_save_path();
+
 #endif
