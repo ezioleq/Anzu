@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <errno.h>
 #include <time.h>
 
 char *get_filename(const char *date_format) {
@@ -41,4 +43,17 @@ char *get_default_save_path() {
 		return (save_path == NULL) ? "/tmp" : save_path;
 	} else
 		return save_path;
+}
+
+bool directory_exists(const char *path) {
+	DIR *dir = opendir(path);
+	if (dir) {
+		closedir(dir);
+		return true;
+	} else
+		return false;
+}
+
+SDL_Surface *get_cropped_surface(SDL_Surface *src, int x, int y, int w, int h) {
+	
 }

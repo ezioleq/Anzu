@@ -106,24 +106,42 @@ void app_init(App *app) {
 
 	SDL_BlitSurface(temp, 0, app->screen_surface, 0);
 	SDL_FreeSurface(temp);
+
+	/* Logic for running without GUI */
+	if (app->cfg.nogui) {
+		if (app->cfg.is_save_path_set) {
+			char *filename = get_filename(app->cfg.date_format);
+			char *full_path = NULL;
+
+			if (directory_exists(app->cfg.save_path))
+				full_path = get_full_path(app->cfg.save_path, filename);
+			else {
+				fprintf(stderr, "Given directory doesn't exist, saving to the default one!\n");
+				char *default_path = get_default_save_path();
+				full_path = get_full_path(default_path, filename);
+				free(default_path);
+			}
+			
+			IMG_SavePNG(app->screen_surface, full_path);
+			fprintf(stderr, "Saved screenshot to %s\n", full_path);
+		
+			free(filename);
+			free(full_path);
+		}
+
+		/* TODO: Copy image to clipboard */
+		fprintf(stderr, "Sorry, but clipboard is not implemented yet!\n");
+
+		app->running = false;
+	} else {
+		/* TODO: GUI */
+		fprintf(stderr, "Error! There's no GUI yet!\n");
+		app->running = false;
+	}
 }
 
 void app_update(App *app) {
-	/* Please future me, change this */
-	if (app->cfg.is_save_path_set) {
-		char *filename = get_filename(app->cfg.date_format);
-		char *full_path = get_full_path(app->cfg.save_path, filename);
 
-		IMG_SavePNG(app->screen_surface, full_path);
-		fprintf(stderr, "Saved screenshot to %s\n", full_path);
-
-		free(filename);
-		free(full_path);
-	} else {
-		fprintf(stderr, "Please set save path!\n");
-	}
-
-	app->running = false; /* We will come back here */
 }
 
 void app_draw(App *app) {
