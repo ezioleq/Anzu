@@ -14,6 +14,7 @@ void app_run(App *app, int argc, char** argv) {
 
 	app_init(app);
 	while (app->running) {
+		app_handle_events(app);
 		app_update(app);
 		app_draw(app);
 	}
@@ -107,6 +108,8 @@ void app_init(App *app) {
 	SDL_BlitSurface(temp, 0, app->screen_surface, 0);
 	SDL_FreeSurface(temp);
 
+	clipboard_init(&app->clipboard, app->x_display, app->x_window);
+
 	/* Logic for running without GUI */
 	if (app->cfg.nogui) {
 		if (app->cfg.is_save_path_set) {
@@ -123,19 +126,45 @@ void app_init(App *app) {
 			}
 			
 			IMG_SavePNG(app->screen_surface, full_path);
+			clipboard_set_data_from_file(&app->clipboard, full_path);
+
+			clipboard_save(&app->clipboard);
+
 			fprintf(stderr, "Saved screenshot to %s\n", full_path);
 		
 			free(filename);
 			free(full_path);
 		}
 
-		/* TODO: Copy image to clipboard */
-		fprintf(stderr, "Sorry, but clipboard is not implemented yet!\n");
-
-		app->running = false;
+		// app->running = false;
 	} else {
 		/* TODO: GUI */
 		fprintf(stderr, "Error! There's no GUI yet!\n");
+		app->running = false;
+	}
+}
+
+void app_handle_events(App *app) {
+	XEvent *ev = &app->x_ev;
+	/* To not block application, we need to use XPending */
+	while (XPending(app->x_display)) {
+		XNextEvent(app->x_display, ev);
+		switch (ev->type) {
+			case SelectionClear:
+				/* We lost ownership */
+				// printf("Ownership lost\n");
+				app->running = false;
+				break;
+			case SelectionRequest: {
+				XSelectionRequestEvent *sev = &ev->xselectionrequest;
+				clipboard_manage(&app->clipboard, app->x_display, sev);
+			} break;
+			default: printf("%d\n", ev->type); break;
+		}
+	}
+
+	/* After clipboard is done, we can safely close application */
+	if (app->clipboard.done) {
 		app->running = false;
 	}
 }
@@ -150,6 +179,7 @@ void app_draw(App *app) {
 
 void app_close(App *app) {
 	config_free(&app->cfg);
+	clipboard_close(&app->clipboard);
 	XDestroyWindow(app->x_display, app->x_window);
 	XCloseDisplay(app->x_display);
 	XDestroyImage(app->image);

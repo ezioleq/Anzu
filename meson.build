@@ -10,7 +10,8 @@ sources = [
 	'src/main.c',
 	'src/app.c',
 	'src/config.c',
-	'src/save.c'
+	'src/save.c',
+	'src/clipboard.c'
 ]
 
 executable(
