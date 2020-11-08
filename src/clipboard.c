@@ -8,7 +8,7 @@ static void send_no(Display *dis, XSelectionRequestEvent *sev) {
 	XSelectionEvent ssev;
 
 	char *atom_name = XGetAtomName(dis, sev->target);
-	printf("Invalid atom: %s\n", XGetAtomName(dis, sev->target));
+	// printf("Invalid atom: %s\n", XGetAtomName(dis, sev->target));
 	if (atom_name)
 		XFree(atom_name);
 
@@ -27,7 +27,7 @@ static void send_no(Display *dis, XSelectionRequestEvent *sev) {
  */
 static void send_png(Display *dis, XSelectionRequestEvent *sev, Clipboard *clip) {
 	char *atom_name = XGetAtomName(dis, sev->target);
-	printf("%s\n", atom_name);
+	// printf("%s\n", atom_name);
 	if (atom_name)
 		XFree(atom_name);
 
@@ -51,7 +51,7 @@ static void send_png(Display *dis, XSelectionRequestEvent *sev, Clipboard *clip)
  */
 static void send_targets(Display *dis, XSelectionRequestEvent *sev, Clipboard *clip) {
 	char *atom_name = XGetAtomName(dis, sev->target);
-	printf("%s\n", atom_name);
+	// printf("%s\n", atom_name);
 	if (atom_name)
 		XFree(atom_name);
 
@@ -78,7 +78,7 @@ static void send_targets(Display *dis, XSelectionRequestEvent *sev, Clipboard *c
 
 static void send_save_targets(Display *dis, XSelectionRequestEvent *sev, Clipboard *clip) {
 	char *atom_name = XGetAtomName(dis, sev->target);
-	printf("%s\n", atom_name);
+	// printf("%s\n", atom_name);
 	if (atom_name)
 		XFree(atom_name);
 
@@ -94,6 +94,14 @@ static void send_save_targets(Display *dis, XSelectionRequestEvent *sev, Clipboa
 	ssev.time = sev->time;
 
 	XSendEvent(dis, sev->requestor, True, NoEventMask, (XEvent*)&ssev);
+}
+
+static int wait(void *ptr) {
+	SDL_Delay(2000);
+
+	bool *done = ptr;
+	*done = true;
+	return 0;
 }
 
 void clipboard_init(Clipboard *clip, Display *dis, Window root) {
@@ -112,17 +120,29 @@ void clipboard_init(Clipboard *clip, Display *dis, Window root) {
 
 	/* Claim CLIPBOARD ownership */
 	XSetSelectionOwner(dis, clip->sel, clip->owner, CurrentTime);
-	return 0;
 }
 
 void clipboard_close(Clipboard *clip) {
-	/* Maybe it does something, I don't know, clip does it so */
-	XConvertSelection(clip->dis, clip->manager, clip->save_targets, clip->sel, clip->root, CurrentTime);
-	XFlush(clip->dis);
+	free(clip->data);
+}
+
+void clipboard_save(Clipboard *clip) {
+	clip->done = false;
+	Window owner = XGetSelectionOwner(clip->dis, clip->manager);
+
+	/* Require from clipboard manager to save our data if exists, otherwise do nothing */
+	if (owner != 0) {
+		XConvertSelection(clip->dis, clip->manager, clip->save_targets, clip->sel, clip->root, CurrentTime);
+		XFlush(clip->dis);
+
+		/* We need to wait a bit for some clipboard managers... */
+		SDL_Thread *thread = SDL_CreateThread(wait, "WaitThread", (void*)&clip->done);
+		SDL_DetachThread(thread);
+	}
 }
 
 void clipboard_manage(Clipboard *clip, Display *dis, XSelectionRequestEvent *sev) {
-	printf("Requestor: 0x%lx\n", sev->requestor);
+	// printf("Requestor: 0x%lx\n", sev->requestor);
 	
 	/* If property is None, then requestor is obsolete, so ignore. */
 	if (sev->property == None) {

@@ -128,6 +128,8 @@ void app_init(App *app) {
 			IMG_SavePNG(app->screen_surface, full_path);
 			clipboard_set_data_from_file(&app->clipboard, full_path);
 
+			clipboard_save(&app->clipboard);
+
 			fprintf(stderr, "Saved screenshot to %s\n", full_path);
 		
 			free(filename);
@@ -144,18 +146,26 @@ void app_init(App *app) {
 
 void app_handle_events(App *app) {
 	XEvent *ev = &app->x_ev;
-	XNextEvent(app->x_display, ev);
-	switch (ev->type) {
-		case SelectionClear:
-			/* We lost ownership */
-			printf("Ownership lost\n");
-			app->running = false;
-			break;
-		case SelectionRequest: {
-			XSelectionRequestEvent *sev = &ev->xselectionrequest;
-			clipboard_manage(&app->clipboard, app->x_display, sev);
-		} break;
-		default: printf("%d\n", ev->type); break;
+	/* To not block application, we need to use XPending */
+	while (XPending(app->x_display)) {
+		XNextEvent(app->x_display, ev);
+		switch (ev->type) {
+			case SelectionClear:
+				/* We lost ownership */
+				// printf("Ownership lost\n");
+				app->running = false;
+				break;
+			case SelectionRequest: {
+				XSelectionRequestEvent *sev = &ev->xselectionrequest;
+				clipboard_manage(&app->clipboard, app->x_display, sev);
+			} break;
+			default: printf("%d\n", ev->type); break;
+		}
+	}
+
+	/* After clipboard is done, we can safely close application */
+	if (app->clipboard.done) {
+		app->running = false;
 	}
 }
 
