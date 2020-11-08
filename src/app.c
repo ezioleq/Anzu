@@ -115,8 +115,6 @@ void app_init(App *app) {
 		if (app->cfg.is_save_path_set) {
 			char *filename = get_filename(app->cfg.date_format);
 			char *full_path = NULL;
-			unsigned char *bitmap = malloc(310000);
-			SDL_RWops *data = SDL_RWFromMem(bitmap, 310000);
 
 			if (directory_exists(app->cfg.save_path))
 				full_path = get_full_path(app->cfg.save_path, filename);
@@ -128,8 +126,7 @@ void app_init(App *app) {
 			}
 			
 			IMG_SavePNG(app->screen_surface, full_path);
-			IMG_SavePNG_RW(app->screen_surface, data, 0);
-			clipboard_set_data(&app->clipboard, bitmap, 310000);
+			clipboard_set_data_from_file(&app->clipboard, full_path);
 
 			fprintf(stderr, "Saved screenshot to %s\n", full_path);
 		
@@ -151,12 +148,14 @@ void app_handle_events(App *app) {
 	switch (ev->type) {
 		case SelectionClear:
 			/* We lost ownership */
+			printf("Ownership lost\n");
 			app->running = false;
 			break;
 		case SelectionRequest: {
 			XSelectionRequestEvent *sev = &ev->xselectionrequest;
 			clipboard_manage(&app->clipboard, app->x_display, sev);
 		} break;
+		default: printf("%d\n", ev->type); break;
 	}
 }
 
@@ -170,6 +169,7 @@ void app_draw(App *app) {
 
 void app_close(App *app) {
 	config_free(&app->cfg);
+	clipboard_close(&app->clipboard);
 	XDestroyWindow(app->x_display, app->x_window);
 	XCloseDisplay(app->x_display);
 	XDestroyImage(app->image);

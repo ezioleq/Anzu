@@ -1,5 +1,9 @@
 #include "clipboard.h"
 
+/**
+ * We have idiots in our lives and it is the same in programming world.
+ * We need to tell them about sending wrong requests and ignore it.
+ */
 static void send_no(Display *dis, XSelectionRequestEvent *sev) {
 	XSelectionEvent ssev;
 
@@ -12,22 +16,25 @@ static void send_no(Display *dis, XSelectionRequestEvent *sev) {
 	ssev.requestor = sev->requestor;
 	ssev.selection = sev->selection;
 	ssev.target = sev->target;
-	ssev.property = None;
+	ssev.property = None; /* <- in X11 world it means "No." */
 	ssev.time = sev->time;
 
-	/* We need to tell requestor about wrong request */
 	XSendEvent(dis, sev->requestor, True, NoEventMask, (XEvent*)&ssev);
 }
 
+/**
+ * Sends PNG to requestor
+ */
 static void send_png(Display *dis, XSelectionRequestEvent *sev, Clipboard *clip) {
 	char *atom_name = XGetAtomName(dis, sev->target);
 	printf("%s\n", atom_name);
 	if (atom_name)
 		XFree(atom_name);
 
-	XSelectionEvent ssev;
+	/* Change data to PNG */
 	XChangeProperty(dis, sev->requestor, sev->property, clip->png, 8, PropModeReplace, clip->data, clip->size);
 
+	XSelectionEvent ssev;
 	ssev.type = SelectionNotify;
 	ssev.requestor = sev->requestor;
 	ssev.selection = sev->selection;
@@ -35,26 +42,29 @@ static void send_png(Display *dis, XSelectionRequestEvent *sev, Clipboard *clip)
 	ssev.property = sev->property;
 	ssev.time = sev->time;
 
-	/* Answer requestor */
 	XSendEvent(dis, sev->requestor, True, NoEventMask, (XEvent*)&ssev);
 }
 
-/* Some applications need also TARGETS and we need to support it */
+/** 
+ * This functions answers requestor about supported targets.
+ * Applications need that to know what we are supporting, e.g. image/png.
+ */
 static void send_targets(Display *dis, XSelectionRequestEvent *sev, Clipboard *clip) {
 	char *atom_name = XGetAtomName(dis, sev->target);
 	printf("%s\n", atom_name);
 	if (atom_name)
 		XFree(atom_name);
 
+	/* We are supporting "TARGETS", "SAVE_TARGETS", and "image/png" */
 	Atom atoms[] = {
 		clip->targets,
-		clip->sel,
+		clip->save_targets,
 		clip->png,
 	};
 
 	XSelectionEvent ssev;
-	/* Save list of atoms */
-	XChangeProperty(dis, sev->requestor, sev->property, XA_ATOM, 32, PropModeReplace, &atoms, 3);
+	/* Save list of supported atoms */
+	XChangeProperty(dis, sev->requestor, sev->property, XA_ATOM, 32, PropModeReplace, (unsigned char*)&atoms, 3);
 
 	ssev.type = SelectionNotify;
 	ssev.requestor = sev->requestor;
@@ -66,25 +76,55 @@ static void send_targets(Display *dis, XSelectionRequestEvent *sev, Clipboard *c
 	XSendEvent(dis, sev->requestor, True, NoEventMask, (XEvent*)&ssev);
 }
 
-int clipboard_init(Clipboard *clip, Display *dis, Window root) {
-	if (clip == NULL) return -1;
+static void send_save_targets(Display *dis, XSelectionRequestEvent *sev, Clipboard *clip) {
+	char *atom_name = XGetAtomName(dis, sev->target);
+	printf("%s\n", atom_name);
+	if (atom_name)
+		XFree(atom_name);
 
-	/* Create window to receive messages */
+	/* In reality I don't know if this is right, but seems to work with clipman, so... maybe it's fine? */
+	XChangeProperty(dis, sev->requestor, sev->property, XA_ATOM, 32, PropModeReplace, (unsigned char*)&clip->sel, 1);
+
+	XSelectionEvent ssev;
+	ssev.type = SelectionNotify;
+	ssev.requestor = sev->requestor;
+	ssev.selection = sev->selection;
+	ssev.target = sev->target;
+	ssev.property = sev->property;
+	ssev.time = sev->time;
+
+	XSendEvent(dis, sev->requestor, True, NoEventMask, (XEvent*)&ssev);
+}
+
+void clipboard_init(Clipboard *clip, Display *dis, Window root) {
+	/* Create empty window to receive messages */
 	clip->owner = XCreateSimpleWindow(dis, root, -10, -10, 1, 1, 0, 0, 0);
 
-	/* Listen for those */
+	clip->dis = dis;
+	clip->root = root;
+
+	/* Get atoms */
 	clip->targets = XInternAtom(dis, "TARGETS", False);
 	clip->sel = XInternAtom(dis, "CLIPBOARD", False);
+	clip->save_targets = XInternAtom(dis, "SAVE_TARGETS", False);
+	clip->manager = XInternAtom(dis, "CLIPBOARD_MANAGER", False);
 	clip->png = XInternAtom(dis, "image/png", False);
 
-	/* Claim ownership */
+	/* Claim CLIPBOARD ownership */
 	XSetSelectionOwner(dis, clip->sel, clip->owner, CurrentTime);
+	return 0;
+}
+
+void clipboard_close(Clipboard *clip) {
+	/* Maybe it does something, I don't know, clip does it so */
+	XConvertSelection(clip->dis, clip->manager, clip->save_targets, clip->sel, clip->root, CurrentTime);
+	XFlush(clip->dis);
 }
 
 void clipboard_manage(Clipboard *clip, Display *dis, XSelectionRequestEvent *sev) {
 	printf("Requestor: 0x%lx\n", sev->requestor);
 	
-	/* Ignore if property is None */
+	/* If property is None, then requestor is obsolete, so ignore. */
 	if (sev->property == None) {
 		send_no(dis, sev);
 		return;
@@ -92,11 +132,10 @@ void clipboard_manage(Clipboard *clip, Display *dis, XSelectionRequestEvent *sev
 
 	if (sev->target == clip->png)
 		send_png(dis, sev, clip);
-	/* We need to accept TARGETS request, because if not, then programs dont know we have image in clipboard */
 	else if (sev->target == clip->targets)
 		send_targets(dis, sev, clip);
-	else if (sev->target == clip->plain)
-		send_png(dis, sev, clip);
+	else if (sev->target == clip->save_targets)
+		send_save_targets(dis, sev, clip);
 	else
 		send_no(dis, sev);
 }
@@ -104,4 +143,20 @@ void clipboard_manage(Clipboard *clip, Display *dis, XSelectionRequestEvent *sev
 void clipboard_set_data(Clipboard *clip, unsigned char *data, size_t size) {
 	clip->data = data;
 	clip->size = size;
+}
+
+int clipboard_set_data_from_file(Clipboard *clip, const char *path) {
+	FILE *f = fopen(path, "rb");
+	if (!f) return -1;
+
+	fseek(f, 0, SEEK_END);
+	long size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+
+	unsigned char *data = malloc(size);
+	fread(data, sizeof(unsigned char), size, f);
+	fclose(f);
+
+	clipboard_set_data(clip, data, size);
+	return 0;
 }
