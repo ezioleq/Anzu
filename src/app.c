@@ -14,6 +14,7 @@ void app_run(App *app, int argc, char** argv) {
 
 	app_init(app);
 	while (app->running) {
+		app_handle_events(app);
 		app_update(app);
 		app_draw(app);
 	}
@@ -107,11 +108,15 @@ void app_init(App *app) {
 	SDL_BlitSurface(temp, 0, app->screen_surface, 0);
 	SDL_FreeSurface(temp);
 
+	clipboard_init(&app->clipboard, app->x_display, app->x_window);
+
 	/* Logic for running without GUI */
 	if (app->cfg.nogui) {
 		if (app->cfg.is_save_path_set) {
 			char *filename = get_filename(app->cfg.date_format);
 			char *full_path = NULL;
+			unsigned char *bitmap = malloc(310000);
+			SDL_RWops *data = SDL_RWFromMem(bitmap, 310000);
 
 			if (directory_exists(app->cfg.save_path))
 				full_path = get_full_path(app->cfg.save_path, filename);
@@ -123,20 +128,35 @@ void app_init(App *app) {
 			}
 			
 			IMG_SavePNG(app->screen_surface, full_path);
+			IMG_SavePNG_RW(app->screen_surface, data, 0);
+			clipboard_set_data(&app->clipboard, bitmap, 310000);
+
 			fprintf(stderr, "Saved screenshot to %s\n", full_path);
 		
 			free(filename);
 			free(full_path);
 		}
 
-		/* TODO: Copy image to clipboard */
-		fprintf(stderr, "Sorry, but clipboard is not implemented yet!\n");
-
-		app->running = false;
+		// app->running = false;
 	} else {
 		/* TODO: GUI */
 		fprintf(stderr, "Error! There's no GUI yet!\n");
 		app->running = false;
+	}
+}
+
+void app_handle_events(App *app) {
+	XEvent *ev = &app->x_ev;
+	XNextEvent(app->x_display, ev);
+	switch (ev->type) {
+		case SelectionClear:
+			/* We lost ownership */
+			app->running = false;
+			break;
+		case SelectionRequest: {
+			XSelectionRequestEvent *sev = &ev->xselectionrequest;
+			clipboard_manage(&app->clipboard, app->x_display, sev);
+		} break;
 	}
 }
 
