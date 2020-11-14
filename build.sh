@@ -10,7 +10,7 @@ function build () {
 		BUILD_MODE="release";
 	fi
 
-	meson "$BUILD_DIR" -Dbuildtype="$BUILD_MODE"; 
+	meson "$BUILD_DIR" -Dbuildtype="$BUILD_MODE";
 	cd "$BUILD_DIR";
 	meson compile;
 	cd .. && mkdir -p "$OUTPUT_DIR";

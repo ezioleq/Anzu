@@ -21,17 +21,15 @@ typedef struct App {
 	Window x_window;
 	XWindowAttributes x_attribs;
 	XImage *image;
-	XEvent x_ev;
+	XEvent x_evt;
 
 	SDL_Window *window;
 	SDL_Event evt;
 	SDL_Surface *window_surface;
 	SDL_Surface *screen_surface;
 
-	int off_x;
-	int off_y;
-	int scr_w;
-	int scr_h;
+	int screen_w;
+	int screen_h;
 } App;
 
 void app_run(App *app, int argc, char** argv);
