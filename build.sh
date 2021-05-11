@@ -1,7 +1,7 @@
 #!/bin/bash
 
 OUTPUT_DIR=bin/
-BUILD_DIR=builddir/
+BUILD_DIR=build/
 EXECUTABLE_NAME=anzu
 
 function build () {
