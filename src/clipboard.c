@@ -104,6 +104,9 @@ void clipboard_init(Clipboard *clip, Display *dis, Window root) {
 	// Create empty window to receive messages
 	clip->owner = XCreateSimpleWindow(dis, root, -10, -10, 1, 1, 0, 0, 0);
 
+	// We don't want to have random data here
+	clip->data = NULL;
+
 	clip->dis = dis;
 	clip->root = root;
 

@@ -1,4 +1,8 @@
-project('anzu', 'c', version: '0.1')
+project('anzu', 'c',
+	default_options: [
+		'-std=c99'
+	]
+)
 
 deps = [
 	dependency('sdl2'),
@@ -17,6 +21,6 @@ sources = [
 executable(
 	'anzu',
 	sources,
-	dependencies: deps,
-	install: true
+	dependencies : deps,
+	install : true
 )
